@@ -40,4 +40,4 @@ Not a yield product. Not DeFi real estate. Real property, real returns, variable
 
 info@secondarydao.com
 
-Licensed Digital Service Asset Provider (DSAP) — El Salvador.
+Digital Service Asset Provider (DSAP) license pending — El Salvador.
