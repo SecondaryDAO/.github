@@ -187,4 +187,10 @@ jobs:
             exit 0
           fi
           git commit -m "chore: refresh org stats"
-          git push
+          for i in 1 2 3 4 5; do
+            if git push; then exit 0; fi
+            echo "Push rejected, rebasing (attempt $i/5)"
+            git fetch origin main
+            git rebase origin/main || { git rebase --abort; exit 1; }
+          done
+          echo "Failed to push after 5 attempts"; exit 1
