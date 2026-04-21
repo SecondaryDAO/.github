@@ -43,6 +43,25 @@ Not a yield product. Not DeFi real estate. Real property, real returns, variable
 
 ---
 
+### Ecosystem activity
+
+<sub>Live counts across the SecondaryDAO stack. Most repos are private — numbers only, no code disclosed. Refreshed daily.</sub>
+
+| Repo | Commits | PRs merged | Last commit |
+|------|---------|------------|-------------|
+| SDRealEstateTokenization | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SDRealEstateTokenization-commits.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SDRealEstateTokenization-prs.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SDRealEstateTokenization-last.json) |
+| SDBackendAPI | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SDBackendAPI-commits.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SDBackendAPI-prs.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SDBackendAPI-last.json) |
+| SDNextJSfrontend | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SDNextJSfrontend-commits.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SDNextJSfrontend-prs.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SDNextJSfrontend-last.json) |
+| SDAdminDashBoard | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SDAdminDashBoard-commits.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SDAdminDashBoard-prs.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SDAdminDashBoard-last.json) |
+| SDExplorer | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SDExplorer-commits.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SDExplorer-prs.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SDExplorer-last.json) |
+| SDMobile | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SDMobile-commits.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SDMobile-prs.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SDMobile-last.json) |
+| SD.com-nextJS-Front-Website | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SD.com-nextJS-Front-Website-commits.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SD.com-nextJS-Front-Website-prs.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SD.com-nextJS-Front-Website-last.json) |
+| SDWelcome | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SDWelcome-commits.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SDWelcome-prs.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SDWelcome-last.json) |
+| SD (workspace) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SD-commits.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SD-prs.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SD-last.json) |
+| api-docs | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/api-docs-commits.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/api-docs-prs.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/api-docs-last.json) |
+
+---
+
 ### Contact
 
 info@secondarydao.com

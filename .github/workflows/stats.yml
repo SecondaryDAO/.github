@@ -1,0 +1,119 @@
+name: Update org stats
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-stats:
+    runs-on: ubuntu-latest
+    env:
+      PUBLISH_REPOS: >-
+        SDRealEstateTokenization
+        SDBackendAPI
+        SDNextJSfrontend
+        SDAdminDashBoard
+        SDExplorer
+        SDMobile
+        SDWelcome
+        SD.com-nextJS-Front-Website
+        SD
+        api-docs
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch per-repo stats
+        env:
+          GH_TOKEN: ${{ secrets.ORG_STATS_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p profile/stats
+
+          gh api graphql -f query='
+            query {
+              organization(login: "SecondaryDAO") {
+                repositories(first: 100, isArchived: false, isFork: false) {
+                  nodes {
+                    name
+                    defaultBranchRef {
+                      target {
+                        ... on Commit {
+                          history { totalCount }
+                          committedDate
+                        }
+                      }
+                    }
+                    pullRequests(states: MERGED) { totalCount }
+                  }
+                }
+              }
+            }' > /tmp/raw.json
+
+          NOW=$(date +%s)
+
+          for name in $PUBLISH_REPOS; do
+            repo=$(jq --arg n "$name" '.data.organization.repositories.nodes[] | select(.name == $n)' /tmp/raw.json)
+            if [ -z "$repo" ]; then
+              echo "Skipping $name (not returned by API)"
+              continue
+            fi
+
+            commits=$(echo "$repo" | jq -r '.defaultBranchRef.target.history.totalCount // 0')
+            prs=$(echo "$repo" | jq -r '.pullRequests.totalCount // 0')
+            last=$(echo "$repo" | jq -r '.defaultBranchRef.target.committedDate // empty')
+
+            if [ -n "$commits" ] && [ "$commits" -ge 1000 ]; then
+              commits_fmt=$(printf "%'d" "$commits")
+            else
+              commits_fmt="$commits"
+            fi
+
+            if [ -n "$last" ]; then
+              last_ts=$(date -d "$last" +%s)
+              days=$(( (NOW - last_ts) / 86400 ))
+              if [ "$days" -le 1 ]; then
+                last_fmt="today"
+                last_color="brightgreen"
+              elif [ "$days" -le 7 ]; then
+                last_fmt="${days}d ago"
+                last_color="green"
+              elif [ "$days" -le 30 ]; then
+                last_fmt="${days}d ago"
+                last_color="yellow"
+              else
+                last_fmt="${days}d ago"
+                last_color="lightgrey"
+              fi
+            else
+              last_fmt="n/a"
+              last_color="lightgrey"
+            fi
+
+            cat > "profile/stats/${name}-commits.json" <<EOF
+          {"schemaVersion":1,"label":"commits","message":"${commits_fmt}","color":"blue"}
+          EOF
+            cat > "profile/stats/${name}-prs.json" <<EOF
+          {"schemaVersion":1,"label":"PRs merged","message":"${prs}","color":"brightgreen"}
+          EOF
+            cat > "profile/stats/${name}-last.json" <<EOF
+          {"schemaVersion":1,"label":"last commit","message":"${last_fmt}","color":"${last_color}"}
+          EOF
+
+            echo "Wrote $name: ${commits_fmt} commits, ${prs} PRs, last ${last_fmt}"
+          done
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add profile/stats
+          if git diff --cached --quiet; then
+            echo "No stat changes this run."
+            exit 0
+          fi
+          git commit -m "chore: refresh org stats"
+          git push
