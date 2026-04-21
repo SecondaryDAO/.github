@@ -39,6 +39,7 @@ jobs:
                 repositories(first: 100, isArchived: false, isFork: false) {
                   nodes {
                     name
+                    createdAt
                     defaultBranchRef {
                       target {
                         ... on Commit {
@@ -54,6 +55,33 @@ jobs:
             }' > /tmp/raw.json
 
           NOW=$(date +%s)
+          TOTAL_COMMITS=0
+          TOTAL_PRS=0
+          FRESHEST_TS=0
+          OLDEST_TS=$NOW
+
+          format_num() {
+            local n="$1"
+            if [ -n "$n" ] && [ "$n" -ge 1000 ]; then
+              printf "%'d" "$n"
+            else
+              printf "%s" "$n"
+            fi
+          }
+
+          last_fmt_and_color() {
+            local ts="$1"
+            local days=$(( (NOW - ts) / 86400 ))
+            if [ "$days" -le 1 ]; then
+              echo "today brightgreen"
+            elif [ "$days" -le 7 ]; then
+              echo "${days}d_ago green"
+            elif [ "$days" -le 30 ]; then
+              echo "${days}d_ago yellow"
+            else
+              echo "${days}d_ago lightgrey"
+            fi
+          }
 
           for name in $PUBLISH_REPOS; do
             repo=$(jq --arg n "$name" '.data.organization.repositories.nodes[] | select(.name == $n)' /tmp/raw.json)
@@ -65,32 +93,35 @@ jobs:
             commits=$(echo "$repo" | jq -r '.defaultBranchRef.target.history.totalCount // 0')
             prs=$(echo "$repo" | jq -r '.pullRequests.totalCount // 0')
             last=$(echo "$repo" | jq -r '.defaultBranchRef.target.committedDate // empty')
+            created=$(echo "$repo" | jq -r '.createdAt // empty')
 
-            if [ -n "$commits" ] && [ "$commits" -ge 1000 ]; then
-              commits_fmt=$(printf "%'d" "$commits")
-            else
-              commits_fmt="$commits"
-            fi
+            TOTAL_COMMITS=$(( TOTAL_COMMITS + commits ))
+            TOTAL_PRS=$(( TOTAL_PRS + prs ))
+
+            commits_fmt=$(format_num "$commits")
 
             if [ -n "$last" ]; then
               last_ts=$(date -d "$last" +%s)
-              days=$(( (NOW - last_ts) / 86400 ))
-              if [ "$days" -le 1 ]; then
-                last_fmt="today"
-                last_color="brightgreen"
-              elif [ "$days" -le 7 ]; then
-                last_fmt="${days}d ago"
-                last_color="green"
-              elif [ "$days" -le 30 ]; then
-                last_fmt="${days}d ago"
-                last_color="yellow"
-              else
-                last_fmt="${days}d ago"
-                last_color="lightgrey"
-              fi
+              if [ "$last_ts" -gt "$FRESHEST_TS" ]; then FRESHEST_TS=$last_ts; fi
+              read last_label last_color <<< "$(last_fmt_and_color "$last_ts")"
+              last_fmt="${last_label//_/ }"
             else
               last_fmt="n/a"
               last_color="lightgrey"
+            fi
+
+            if [ -n "$created" ]; then
+              created_ts=$(date -d "$created" +%s)
+              if [ "$created_ts" -lt "$OLDEST_TS" ]; then OLDEST_TS=$created_ts; fi
+              age_days=$(( (NOW - created_ts) / 86400 ))
+              if [ "$age_days" -ge 365 ]; then
+                years=$(awk -v d="$age_days" 'BEGIN{printf "%.1f", d/365.25}')
+                age_fmt="${years}y"
+              else
+                age_fmt="${age_days}d"
+              fi
+            else
+              age_fmt="n/a"
             fi
 
             cat > "profile/stats/${name}-commits.json" <<EOF
@@ -102,9 +133,50 @@ jobs:
             cat > "profile/stats/${name}-last.json" <<EOF
           {"schemaVersion":1,"label":"last commit","message":"${last_fmt}","color":"${last_color}"}
           EOF
+            cat > "profile/stats/${name}-age.json" <<EOF
+          {"schemaVersion":1,"label":"age","message":"${age_fmt}","color":"blueviolet"}
+          EOF
 
-            echo "Wrote $name: ${commits_fmt} commits, ${prs} PRs, last ${last_fmt}"
+            echo "Wrote $name: ${commits_fmt} commits, ${prs} PRs, last ${last_fmt}, age ${age_fmt}"
           done
+
+          total_commits_fmt=$(format_num "$TOTAL_COMMITS")
+          total_prs_fmt=$(format_num "$TOTAL_PRS")
+
+          if [ "$FRESHEST_TS" -gt 0 ]; then
+            read fresh_label fresh_color <<< "$(last_fmt_and_color "$FRESHEST_TS")"
+            fresh_fmt="${fresh_label//_/ }"
+          else
+            fresh_fmt="n/a"
+            fresh_color="lightgrey"
+          fi
+
+          if [ "$OLDEST_TS" -lt "$NOW" ]; then
+            total_age_days=$(( (NOW - OLDEST_TS) / 86400 ))
+            if [ "$total_age_days" -ge 365 ]; then
+              years=$(awk -v d="$total_age_days" 'BEGIN{printf "%.1f", d/365.25}')
+              total_age_fmt="${years}y"
+            else
+              total_age_fmt="${total_age_days}d"
+            fi
+          else
+            total_age_fmt="n/a"
+          fi
+
+          cat > "profile/stats/TOTAL-commits.json" <<EOF
+          {"schemaVersion":1,"label":"total commits","message":"${total_commits_fmt}","color":"1f6feb"}
+          EOF
+          cat > "profile/stats/TOTAL-prs.json" <<EOF
+          {"schemaVersion":1,"label":"total PRs merged","message":"${total_prs_fmt}","color":"238636"}
+          EOF
+          cat > "profile/stats/TOTAL-last.json" <<EOF
+          {"schemaVersion":1,"label":"latest activity","message":"${fresh_fmt}","color":"${fresh_color}"}
+          EOF
+          cat > "profile/stats/TOTAL-age.json" <<EOF
+          {"schemaVersion":1,"label":"oldest repo","message":"${total_age_fmt}","color":"blueviolet"}
+          EOF
+
+          echo "Totals: ${total_commits_fmt} commits, ${total_prs_fmt} PRs, latest ${fresh_fmt}, oldest ${total_age_fmt}"
 
       - name: Commit if changed
         run: |
