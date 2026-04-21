@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/logo.png" alt="SecondaryDAO" width="500">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/logo-dark.png">
+    <img src="https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/logo.png" alt="SecondaryDAO" width="500">
+  </picture>
 </p>
 
 <p align="center">
