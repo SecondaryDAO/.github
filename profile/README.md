@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>Compliant real estate ownership infrastructure on Arbitrum Nova.</strong>
+  <strong>Compliant real estate ownership infrastructure on Arbitrum One.</strong>
 </p>
 
 <p align="center">
@@ -11,6 +11,13 @@
   <a href="https://explorer.secondarydao.com">Explorer</a> &bull;
   <a href="https://github.com/SecondaryDAO/api-docs">Trader API</a> &bull;
   <a href="https://x.com/SecondaryDAO">X</a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/chain-Arbitrum%20One-28a0f0" alt="Arbitrum One">
+  <img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.secondarydao.com%2Fapi%2Fproperties&query=%24.count&label=properties%20listed&color=2563eb" alt="Properties listed">
+  <img src="https://img.shields.io/badge/audit-in%20progress-orange" alt="Audit in progress">
+  <img src="https://img.shields.io/badge/DSAP-El%20Salvador%20pending-lightgrey" alt="DSAP pending">
 </p>
 
 ---
