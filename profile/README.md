@@ -51,6 +51,8 @@ Not a yield product. Not DeFi real estate. Real property, real returns, variable
 <p>
   <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/TOTAL-commits.json" alt="Total commits">
   <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/TOTAL-prs.json" alt="Total PRs merged">
+  <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/TOTAL-loc.json" alt="Lines of code">
+  <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/TOTAL-weekly-commits.json" alt="Commits last 7d">
   <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/TOTAL-last.json" alt="Latest activity">
   <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/TOTAL-age.json" alt="Oldest repo">
 </p>
@@ -67,6 +69,10 @@ Not a yield product. Not DeFi real estate. Real property, real returns, variable
 | SDWelcome | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SDWelcome-commits.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SDWelcome-prs.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SDWelcome-last.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SDWelcome-age.json) |
 | SD (workspace) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SD-commits.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SD-prs.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SD-last.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/SD-age.json) |
 | api-docs | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/api-docs-commits.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/api-docs-prs.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/api-docs-last.json) | ![](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/api-docs-age.json) |
+
+<p>
+  <img src="https://raw.githubusercontent.com/SecondaryDAO/.github/main/profile/stats/languages.svg" alt="Language breakdown">
+</p>
 
 ---
 

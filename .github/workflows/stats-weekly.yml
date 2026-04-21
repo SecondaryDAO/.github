@@ -1,0 +1,190 @@
+name: Update heavy org stats (weekly)
+
+on:
+  schedule:
+    - cron: '13 7 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  heavy-stats:
+    runs-on: ubuntu-latest
+    env:
+      PUBLISH_REPOS: >-
+        SDRealEstateTokenization
+        SDBackendAPI
+        SDNextJSfrontend
+        SDAdminDashBoard
+        SDExplorer
+        SDMobile
+        SDWelcome
+        SD.com-nextJS-Front-Website
+        SD
+        api-docs
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cloc
+        run: sudo apt-get update && sudo apt-get install -y cloc jq
+
+      - name: Aggregate LOC + languages + weekly commits
+        env:
+          GH_TOKEN: ${{ secrets.ORG_STATS_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p profile/stats
+
+          SINCE=$(date -u -d '7 days ago' +'%Y-%m-%dT%H:%M:%SZ')
+          TOTAL_LOC=0
+          TOTAL_WEEKLY=0
+          declare -A LANG_BYTES=()
+
+          for name in $PUBLISH_REPOS; do
+            echo "=== $name ==="
+            tmpdir=$(mktemp -d)
+            git clone --quiet --depth 50 \
+              "https://x-access-token:${GH_TOKEN}@github.com/SecondaryDAO/${name}.git" \
+              "$tmpdir" || { echo "clone failed: $name"; rm -rf "$tmpdir"; continue; }
+
+            loc=$(cloc --quiet --json \
+              --exclude-dir=node_modules,dist,build,.next,out,coverage,deployments,artifacts,cache,__pycache__,venv,vendor,public/locales \
+              --exclude-ext=json,lock,svg,png,jpg,jpeg,gif,ico,pdf,csv \
+              "$tmpdir" 2>/dev/null \
+              | jq -r '.SUM.code // 0')
+            loc=${loc:-0}
+            TOTAL_LOC=$(( TOTAL_LOC + loc ))
+            echo "$name LOC: $loc"
+
+            langs_json=$(gh api "/repos/SecondaryDAO/${name}/languages" 2>/dev/null || echo '{}')
+            while IFS=$'\t' read -r lang bytes; do
+              [ -z "$lang" ] && continue
+              prev=${LANG_BYTES[$lang]:-0}
+              LANG_BYTES[$lang]=$(( prev + bytes ))
+            done < <(echo "$langs_json" | jq -r 'to_entries[] | "\(.key)\t\(.value)"')
+
+            weekly=$(gh api graphql -f query="
+              query {
+                repository(owner: \"SecondaryDAO\", name: \"${name}\") {
+                  defaultBranchRef {
+                    target {
+                      ... on Commit {
+                        history(since: \"${SINCE}\") { totalCount }
+                      }
+                    }
+                  }
+                }
+              }" --jq '.data.repository.defaultBranchRef.target.history.totalCount // 0' 2>/dev/null || echo 0)
+            TOTAL_WEEKLY=$(( TOTAL_WEEKLY + weekly ))
+            echo "$name weekly commits: $weekly"
+
+            rm -rf "$tmpdir"
+          done
+
+          format_num() {
+            local n="$1"
+            if [ -n "$n" ] && [ "$n" -ge 1000 ]; then
+              printf "%'d" "$n"
+            else
+              printf "%s" "$n"
+            fi
+          }
+
+          loc_fmt=$(format_num "$TOTAL_LOC")
+          weekly_fmt=$(format_num "$TOTAL_WEEKLY")
+
+          cat > profile/stats/TOTAL-loc.json <<EOF
+          {"schemaVersion":1,"label":"lines of code","message":"${loc_fmt}","color":"1f6feb"}
+          EOF
+          cat > profile/stats/TOTAL-weekly-commits.json <<EOF
+          {"schemaVersion":1,"label":"commits last 7d","message":"${weekly_fmt}","color":"brightgreen"}
+          EOF
+
+          total_bytes=0
+          for lang in "${!LANG_BYTES[@]}"; do
+            total_bytes=$(( total_bytes + LANG_BYTES[$lang] ))
+          done
+
+          if [ "$total_bytes" -gt 0 ]; then
+            tmp_langs=$(mktemp)
+            for lang in "${!LANG_BYTES[@]}"; do
+              printf '%s\t%d\n' "$lang" "${LANG_BYTES[$lang]}"
+            done | sort -t $'\t' -k2 -rn > "$tmp_langs"
+
+            python3 - "$total_bytes" "$tmp_langs" > profile/stats/languages.svg <<'PY'
+          import sys, html, json, os
+          total = int(sys.argv[1])
+          rows = [line.rstrip("\n").split("\t") for line in open(sys.argv[2])]
+          rows = [(n, int(b)) for n, b in rows]
+          # GitHub language colors (subset) — fall back to a palette otherwise
+          colors = {
+              "JavaScript": "#f1e05a", "TypeScript": "#3178c6", "Solidity": "#AA6746",
+              "Python": "#3572A5", "HTML": "#e34c26", "CSS": "#663399",
+              "SCSS": "#c6538c", "Shell": "#89e051", "Ruby": "#701516",
+              "Go": "#00ADD8", "Rust": "#dea584", "Java": "#b07219",
+              "Kotlin": "#A97BFF", "Swift": "#F05138", "Dart": "#00B4AB",
+              "C": "#555555", "C++": "#f34b7d", "PHP": "#4F5D95",
+              "Dockerfile": "#384d54", "Markdown": "#083fa1",
+          }
+          fallback = ["#6e7681", "#8957e5", "#db61a2", "#f85149", "#ffa657", "#bf8700"]
+          top = rows[:6]
+          other_bytes = sum(b for _, b in rows[6:])
+          if other_bytes > 0:
+              top.append(("Other", other_bytes))
+
+          width, height = 720, 26
+          bar_y, bar_h = 0, 14
+          legend_y = bar_h + 8
+
+          segments = []
+          x_cursor = 0.0
+          legend_chunks = []
+          fb_i = 0
+          for name, b in top:
+              pct = 100.0 * b / total if total else 0
+              w = width * pct / 100.0
+              color = colors.get(name)
+              if not color:
+                  color = fallback[fb_i % len(fallback)]
+                  fb_i += 1
+              segments.append((x_cursor, w, color, name, pct))
+              legend_chunks.append((color, name, pct))
+              x_cursor += w
+
+          def esc(s): return html.escape(s, quote=True)
+
+          out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" role="img" aria-label="Language breakdown">']
+          out.append(f'<rect x="0" y="{bar_y}" width="{width}" height="{bar_h}" rx="3" fill="#2d333b"/>')
+          out.append(f'<clipPath id="r"><rect x="0" y="{bar_y}" width="{width}" height="{bar_h}" rx="3"/></clipPath>')
+          out.append('<g clip-path="url(#r)">')
+          for x, w, color, name, pct in segments:
+              out.append(f'<rect x="{x:.2f}" y="{bar_y}" width="{w:.2f}" height="{bar_h}" fill="{color}"><title>{esc(name)} {pct:.1f}%</title></rect>')
+          out.append('</g>')
+          # Legend: dots + labels
+          lx = 0
+          font = 'font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="10"'
+          for color, name, pct in legend_chunks:
+              out.append(f'<circle cx="{lx+5}" cy="{legend_y+3}" r="4" fill="{color}"/>')
+              label = f"{name} {pct:.1f}%"
+              text_x = lx + 13
+              out.append(f'<text x="{text_x}" y="{legend_y+6}" fill="#c9d1d9" {font}>{esc(label)}</text>')
+              lx = text_x + 7 * len(label) + 10
+          out.append('</svg>')
+          sys.stdout.write("\n".join(out))
+          PY
+          fi
+
+          echo "Totals: LOC ${loc_fmt}, weekly commits ${weekly_fmt}"
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add profile/stats
+          if git diff --cached --quiet; then
+            echo "No heavy stat changes this run."
+            exit 0
+          fi
+          git commit -m "chore: refresh heavy org stats (weekly)"
+          git push
