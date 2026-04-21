@@ -39,6 +39,7 @@ Not a yield product. Not DeFi real estate. Real property, real returns, variable
 
 ### Public resources
 
+- **[SD Docs](https://docs.secondarydao.com)** — Product documentation, guides, and platform references for investors, renters, and property managers.
 - **[Trader API Documentation](https://github.com/SecondaryDAO/api-docs)** — Full API reference for building trading bots and integrations. Authentication, endpoints, rate limits, WebSocket events, and code examples.
 
 ---
