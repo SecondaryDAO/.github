@@ -23,6 +23,14 @@ jobs:
         SD
         api-docs
     steps:
+      - name: Mint a short-lived read-only token (GitHub App secondarydao-org-stats)
+        id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ vars.STATS_APP_ID }}
+          private-key: ${{ secrets.STATS_APP_PRIVATE_KEY }}
+          owner: SecondaryDAO
+
       - uses: actions/checkout@v4
 
       - name: Install cloc
@@ -31,7 +39,7 @@ jobs:
       - name: Aggregate LOC + languages + weekly commits
         shell: bash {0}
         env:
-          GH_TOKEN: ${{ secrets.ORG_STATS_TOKEN }}
+          GH_TOKEN: ${{ steps.app.outputs.token }}
         run: |
           mkdir -p profile/stats
 
@@ -47,9 +55,8 @@ jobs:
             if ! git clone --quiet --depth 50 \
                  "https://x-access-token:${GH_TOKEN}@github.com/SecondaryDAO/${name}.git" \
                  "$tmpdir"; then
-              echo "clone failed: $name"
-              rm -rf "$tmpdir"
-              continue
+              echo "::error::clone failed for $name (expired/revoked app key, or app lost access?). Refusing to publish partial stats."
+              exit 1
             fi
 
             loc=$(cloc --quiet --json \
@@ -57,12 +64,18 @@ jobs:
               --exclude-ext=json,lock,svg,png,jpg,jpeg,gif,ico,pdf,csv \
               "$tmpdir" 2>/dev/null \
               | jq -r '.SUM.code // 0' 2>/dev/null)
-            loc=${loc:-0}
+            # zero is not proof: every published repo has code, so empty/0/non-numeric means the measurement failed
+            if ! [[ "$loc" =~ ^[0-9]+$ ]] || [ "$loc" -eq 0 ]; then
+              echo "::error::LOC for $name is '${loc}' (expected > 0). Refusing to publish."
+              exit 1
+            fi
             TOTAL_LOC=$(( TOTAL_LOC + loc ))
             echo "$name LOC: $loc"
 
-            langs_json=$(gh api "/repos/SecondaryDAO/${name}/languages" 2>/dev/null || echo '{}')
-            echo "$langs_json" | jq -r 'to_entries[] | "\(.key)\t\(.value)"' >> /tmp/langs.tsv || true
+            langs_json=$(gh api "/repos/SecondaryDAO/${name}/languages") \
+              || { echo "::error::languages API call failed for $name"; exit 1; }
+            echo "$langs_json" | jq -r 'to_entries[] | "\(.key)\t\(.value)"' >> /tmp/langs.tsv \
+              || { echo "::error::could not parse languages for $name"; exit 1; }
 
             weekly=$(gh api graphql -f query="
               query {
@@ -75,8 +88,10 @@ jobs:
                     }
                   }
                 }
-              }" --jq '.data.repository.defaultBranchRef.target.history.totalCount // 0' 2>/dev/null || echo 0)
-            weekly=${weekly:-0}
+              }" --jq '.data.repository.defaultBranchRef.target.history.totalCount // 0') \
+              || { echo "::error::weekly-commit query failed for $name"; exit 1; }
+            # 0 commits in a week is legitimate; empty or non-numeric is a failed query
+            [[ "$weekly" =~ ^[0-9]+$ ]] || { echo "::error::weekly commits for $name is '${weekly}'"; exit 1; }
             TOTAL_WEEKLY=$(( TOTAL_WEEKLY + weekly ))
             echo "$name weekly commits: $weekly"
 
