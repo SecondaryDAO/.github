@@ -30,6 +30,17 @@ jobs:
           app-id: ${{ vars.STATS_APP_ID }}
           private-key: ${{ secrets.STATS_APP_PRIVATE_KEY }}
           owner: SecondaryDAO
+          # scope = PUBLISH_REPOS below; a repo missing here fails the run at clone time
+          repositories: |
+            SDRealEstateTokenization
+            SDBackendAPI
+            SDNextJSfrontend
+            SDAdminDashBoard
+            SDExplorer
+            SDMobile
+            SD.com-nextJS-Front-Website
+            SD
+            api-docs
           permission-contents: read
           permission-metadata: read
 
@@ -77,6 +88,9 @@ jobs:
 
             langs_json=$(gh api "/repos/SecondaryDAO/${name}/languages") \
               || { echo "::error::languages API call failed for $name"; exit 1; }
+            # every published repo has code: an empty or malformed languages response is a failed measurement
+            echo "$langs_json" | jq -e 'type=="object" and length>0 and all(.[]; type=="number" and . >= 0 and . == floor)' >/dev/null \
+              || { echo "::error::languages response for $name is empty or malformed"; exit 1; }
             echo "$langs_json" | jq -r 'to_entries[] | "\(.key)\t\(.value)"' >> /tmp/langs.tsv \
               || { echo "::error::could not parse languages for $name"; exit 1; }
 
@@ -91,7 +105,7 @@ jobs:
                     }
                   }
                 }
-              }" --jq '.data.repository.defaultBranchRef.target.history.totalCount // 0') \
+              }" --jq '.data.repository.defaultBranchRef.target.history.totalCount | if type == "number" and . >= 0 then . else error("missing totalCount") end') \
               || { echo "::error::weekly-commit query failed for $name"; exit 1; }
             # 0 commits in a week is legitimate; empty or non-numeric is a failed query
             [[ "$weekly" =~ ^[0-9]+$ ]] || { echo "::error::weekly commits for $name is '${weekly}'"; exit 1; }
@@ -126,6 +140,8 @@ jobs:
           with open("/tmp/langs.tsv") as f:
               for line in f:
                   lang, raw = line.rstrip("\n").split("\t")
+                  if int(raw) < 0:
+                      sys.exit(f"negative byte count for {lang}")
                   rows[lang] = rows.get(lang, 0) + int(raw)
 
           total = sum(rows.values())
