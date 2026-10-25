@@ -115,8 +115,8 @@ jobs:
             req() { echo "$repo" | jq -er "$1" || { echo "::error::$name: required field missing or malformed: $1" >&2; exit 1; }; }
             commits=$(req '.defaultBranchRef.target.history.totalCount | select(type == "number" and . >= 0)')
             prs=$(req '.pullRequests.totalCount | select(type == "number" and . >= 0)')
-            last=$(req '.defaultBranchRef.target.committedDate | select(type == "string")')
-            created=$(req '.createdAt | select(type == "string")')
+            last=$(req '.defaultBranchRef.target.committedDate | select(type == "string" and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"))')
+            created=$(req '.createdAt | select(type == "string" and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"))')
 
             TOTAL_COMMITS=$(( TOTAL_COMMITS + commits ))
             TOTAL_PRS=$(( TOTAL_PRS + prs ))
