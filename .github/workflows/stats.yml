@@ -23,11 +23,19 @@ jobs:
         SD
         api-docs
     steps:
+      - name: Mint a short-lived read-only token (GitHub App secondarydao-org-stats)
+        id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ vars.STATS_APP_ID }}
+          private-key: ${{ secrets.STATS_APP_PRIVATE_KEY }}
+          owner: SecondaryDAO
+
       - uses: actions/checkout@v4
 
       - name: Fetch per-repo stats
         env:
-          GH_TOKEN: ${{ secrets.ORG_STATS_TOKEN }}
+          GH_TOKEN: ${{ steps.app.outputs.token }}
         run: |
           set -euo pipefail
           mkdir -p profile/stats
@@ -85,8 +93,8 @@ jobs:
           for name in $PUBLISH_REPOS; do
             repo=$(jq --arg n "$name" '.data.organization.repositories.nodes[] | select(.name == $n)' /tmp/raw.json)
             if [ -z "$repo" ]; then
-              echo "Skipping $name (not returned by API)"
-              continue
+              echo "::error::$name was not returned by the API (lost access, renamed, or truncated list). Refusing to publish partial stats."
+              exit 1
             fi
 
             commits=$(echo "$repo" | jq -r '.defaultBranchRef.target.history.totalCount // 0')
