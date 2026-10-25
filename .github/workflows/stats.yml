@@ -30,6 +30,9 @@ jobs:
           app-id: ${{ vars.STATS_APP_ID }}
           private-key: ${{ secrets.STATS_APP_PRIVATE_KEY }}
           owner: SecondaryDAO
+          permission-contents: read
+          permission-metadata: read
+          permission-pull-requests: read
 
       - uses: actions/checkout@v4
 
