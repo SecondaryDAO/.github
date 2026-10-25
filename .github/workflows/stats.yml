@@ -112,7 +112,7 @@ jobs:
             fi
 
             # required fields: a missing count or date is a failed measurement, never 0 or n/a (0 itself is a legitimate value)
-            req() { echo "$repo" | jq -er "$1" || { echo "::error::$name: required field missing or malformed: $1"; exit 1; }; }
+            req() { echo "$repo" | jq -er "$1" || { echo "::error::$name: required field missing or malformed: $1" >&2; exit 1; }; }
             commits=$(req '.defaultBranchRef.target.history.totalCount | select(type == "number" and . >= 0)')
             prs=$(req '.pullRequests.totalCount | select(type == "number" and . >= 0)')
             last=$(req '.defaultBranchRef.target.committedDate | select(type == "string")')
