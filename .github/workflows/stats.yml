@@ -10,7 +10,10 @@ permissions:
 
 jobs:
   build-stats:
-    runs-on: ubuntu-latest
+    # RUNNER BACKEND IS A REPO VARIABLE (2026-10-25, runner-cost plan). With CI_RUNNER_BACKEND == 'runs-on' this job runs on an ephemeral
+    # AWS spot runner (RunsOn, account secondarydao-ci); unset or anything else, it runs on GitHub-hosted ubuntu-latest. Rollback is
+    # deleting the variable. The label is unique per run/attempt/job/matrix leg so concurrent jobs never share an instance. Job names are unchanged.
+    runs-on: "${{ vars.CI_RUNNER_BACKEND == 'runs-on' && format('runs-on={0}-{1}-build-stats-{2}/runner=2cpu-linux-x64', github.run_id, github.run_attempt, strategy.job-index) || 'ubuntu-latest' }}"
     env:
       PUBLISH_REPOS: >-
         SDRealEstateTokenization
