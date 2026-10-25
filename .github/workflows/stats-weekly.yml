@@ -30,6 +30,8 @@ jobs:
           app-id: ${{ vars.STATS_APP_ID }}
           private-key: ${{ secrets.STATS_APP_PRIVATE_KEY }}
           owner: SecondaryDAO
+          permission-contents: read
+          permission-metadata: read
 
       - uses: actions/checkout@v4
 
@@ -37,7 +39,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y cloc jq
 
       - name: Aggregate LOC + languages + weekly commits
-        shell: bash {0}
+        shell: bash -eo pipefail {0}
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
         run: |
@@ -52,9 +54,10 @@ jobs:
             echo "=== $name ==="
             tmpdir=$(mktemp -d)
 
-            if ! git clone --quiet --depth 50 \
-                 "https://x-access-token:${GH_TOKEN}@github.com/SecondaryDAO/${name}.git" \
-                 "$tmpdir"; then
+            # token goes in via env (not argv, not the URL), so it never shows in the process table or a remote URL
+            if ! GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.https://github.com/.extraheader \
+                 GIT_CONFIG_VALUE_0="Authorization: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)" \
+                 git clone --quiet --depth 50 "https://github.com/SecondaryDAO/${name}.git" "$tmpdir"; then
               echo "::error::clone failed for $name (expired/revoked app key, or app lost access?). Refusing to publish partial stats."
               exit 1
             fi
@@ -62,8 +65,8 @@ jobs:
             loc=$(cloc --quiet --json \
               --exclude-dir=node_modules,dist,build,.next,out,coverage,deployments,artifacts,cache,__pycache__,venv,vendor,locales \
               --exclude-ext=json,lock,svg,png,jpg,jpeg,gif,ico,pdf,csv \
-              "$tmpdir" 2>/dev/null \
-              | jq -r '.SUM.code // 0' 2>/dev/null)
+              "$tmpdir" | jq -r '.SUM.code // 0') \
+              || { echo "::error::cloc/jq failed for $name"; exit 1; }
             # zero is not proof: every published repo has code, so empty/0/non-numeric means the measurement failed
             if ! [[ "$loc" =~ ^[0-9]+$ ]] || [ "$loc" -eq 0 ]; then
               echo "::error::LOC for $name is '${loc}' (expected > 0). Refusing to publish."
@@ -117,24 +120,17 @@ jobs:
           {"schemaVersion":1,"label":"commits last 7d","message":"${weekly_fmt}","color":"brightgreen"}
           EOF
 
-          python3 - > profile/stats/languages.svg <<'PY'
+          python3 - > /tmp/languages.svg <<'PY'
           import sys, html
           rows = {}
-          try:
-              with open("/tmp/langs.tsv") as f:
-                  for line in f:
-                      parts = line.rstrip("\n").split("\t")
-                      if len(parts) != 2: continue
-                      lang, raw = parts
-                      try:
-                          b = int(raw)
-                      except ValueError:
-                          continue
-                      rows[lang] = rows.get(lang, 0) + b
-          except FileNotFoundError:
-              pass
+          with open("/tmp/langs.tsv") as f:
+              for line in f:
+                  lang, raw = line.rstrip("\n").split("\t")
+                  rows[lang] = rows.get(lang, 0) + int(raw)
 
           total = sum(rows.values())
+          if total <= 0:
+              sys.exit("no language bytes collected; refusing to write languages.svg")
           colors = {
               "JavaScript": "#f1e05a", "TypeScript": "#3178c6", "Solidity": "#AA6746",
               "Python": "#3572A5", "HTML": "#e34c26", "CSS": "#663399",
@@ -185,6 +181,9 @@ jobs:
           out.append('</svg>')
           sys.stdout.write("".join(out))
           PY
+          head -c 4 /tmp/languages.svg | grep -q '^<svg' && tail -c 6 /tmp/languages.svg | grep -q '</svg>' \
+            || { echo "::error::languages.svg is not a complete SVG; refusing to publish"; exit 1; }
+          mv /tmp/languages.svg profile/stats/languages.svg
 
           echo "Totals: LOC ${loc_fmt}, weekly commits ${weekly_fmt}"
 
